@@ -81,7 +81,7 @@ $(document).ready(function() {
 								success: function(pluginHandle) {
 									$('#details').remove();
 									streaming = pluginHandle;
-									Janus.log("Plugin attached! (" + streaming.getPlugin() + ", id=" + streaming.getId() + ")");
+									console.log("Plugin attached! (" + streaming.getPlugin() + ", id=" + streaming.getId() + ")");
 									// Setup streaming session
 									$('#update-streams').click(updateStreamsList);
 									updateStreamsList();
@@ -96,17 +96,17 @@ $(document).ready(function() {
 										});
 								},
 								error: function(error) {
-									Janus.error("  -- Error attaching plugin... ", error);
+									console.log("  -- Error attaching plugin... ", error);
 									bootbox.alert("Error attaching plugin... " + error);
 								},
 								iceState: function(state) {
-									Janus.log("ICE state changed to " + state);
+									console.log("ICE state changed to " + state);
 								},
 								webrtcState: function(on) {
-									Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
+									console.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
 								},
 								onmessage: function(msg, jsep) {
-									Janus.debug(" ::: Got a message :::", msg);
+									console.log(" ::: Got a message :::", msg);
 									var result = msg["result"];
 									if(result) {
 										if(result["status"]) {
@@ -147,7 +147,7 @@ $(document).ready(function() {
 										return;
 									}
 									if(jsep) {
-										Janus.debug("Handling SDP as well...", jsep);
+										console.log("Handling SDP as well...", jsep);
 										var stereo = (jsep.sdp.indexOf("stereo=1") !== -1);
 										// Offer from the plugin, let's answer
 										streaming.createAnswer(
@@ -162,20 +162,20 @@ $(document).ready(function() {
 													}
 												},
 												success: function(jsep) {
-													Janus.debug("Got SDP!", jsep);
+													console.log("Got SDP!", jsep);
 													var body = { request: "start" };
 													streaming.send({ message: body, jsep: jsep });
 													$('#watch').html("Stop").removeAttr('disabled').click(stopStream);
 												},
 												error: function(error) {
-													Janus.error("WebRTC error:", error);
+													console.log("WebRTC error:", error);
 													bootbox.alert("WebRTC error... " + error.message);
 												}
 											});
 									}
 								},
 								onremotestream: function(stream) {
-									Janus.debug(" ::: Got a remote stream :::", stream);
+									console.log(" ::: Got a remote stream :::", stream);
 									var addButtons = false;
 									if($('#remotevideo').length === 0) {
 										addButtons = true;
@@ -204,7 +204,7 @@ $(document).ready(function() {
 											}
 										});
 									}
-									Janus.attachMediaStream($('#remotevideo').get(0), stream);
+									// Janus.attachMediaStream($('#remotevideo').get(0), stream);
 									var videoTracks = stream.getVideoTracks();
 									if(!videoTracks || videoTracks.length === 0) {
 										// No remote video
@@ -240,7 +240,7 @@ $(document).ready(function() {
 									}
 								},
 								ondataopen: function(data) {
-									Janus.log("The DataChannel is available!");
+									console.log("The DataChannel is available!");
 									$('#waitingvideo').remove();
 									$('#stream').append(
 										'<input class="form-control" type="text" id="datarecv" disabled></input>'
@@ -250,11 +250,11 @@ $(document).ready(function() {
 									spinner = null;
 								},
 								ondata: function(data) {
-									Janus.debug("We got data from the DataChannel!", data);
+									console.log("We got data from the DataChannel!", data);
 									$('#datarecv').val(data);
 								},
 								oncleanup: function() {
-									Janus.log(" ::: Got a cleanup notification :::");
+									console.log(" ::: Got a cleanup notification :::");
 									$('#waitingvideo').remove();
 									$('#remotevideo').remove();
 									$('#datarecv').remove();
@@ -274,7 +274,7 @@ $(document).ready(function() {
 							});
 					},
 					error: function(error) {
-						Janus.error(error);
+						console.log(error);
 						bootbox.alert(error, function() {
 							window.location.reload();
 						});
@@ -290,7 +290,7 @@ $(document).ready(function() {
 function updateStreamsList() {
 	$('#update-streams').unbind('click').addClass('fa-spin');
 	var body = { request: "list" };
-	Janus.debug("Sending message:", body);
+	console.log("Sending message:", body);
 	streaming.send({ message: body, success: function(result) {
 		setTimeout(function() {
 			$('#update-streams').removeClass('fa-spin').click(updateStreamsList);
@@ -304,7 +304,7 @@ function updateStreamsList() {
 			$('#streamslist').empty();
 			$('#watch').attr('disabled', true).unbind('click');
 			var list = result["list"];
-			Janus.log("Got a list of available streams");
+			console.log("Got a list of available streams");
 			if(list && Array.isArray(list)) {
 				list.sort(function(a, b) {
 					if(!a || a.id < (b ? b.id : 0))
@@ -314,9 +314,9 @@ function updateStreamsList() {
 					return 0;
 				});
 			}
-			Janus.debug(list);
+			console.log(list);
 			for(var mp in list) {
-				Janus.debug("  >> [" + list[mp]["id"] + "] " + list[mp]["description"] + " (" + list[mp]["type"] + ")");
+				console.log("  >> [" + list[mp]["id"] + "] " + list[mp]["description"] + " (" + list[mp]["type"] + ")");
 				$('#streamslist').append("<li><a href='#' id='" + list[mp]["id"] + "'>" + list[mp]["description"] + " (" + list[mp]["type"] + ")" + "</a></li>");
 			}
 			$('#streamslist a').unbind('click').click(function() {
@@ -346,7 +346,7 @@ function getStreamInfo() {
 }
 
 function startStream() {
-	Janus.log("Selected video id #" + selectedStream);
+	console.log("Selected video id #" + selectedStream);
 	if(!selectedStream) {
 		bootbox.alert("Select a stream from the list");
 		return;
