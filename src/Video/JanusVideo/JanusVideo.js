@@ -12,11 +12,11 @@ const JanusVideo = ({ url }) => {
 
   websocket.onopen = (event) => {
     connected = true;
-  }
+  };
 
   websocket.onerror = (event) => {
     console.log("connection error");
-  }
+  };
 
   websocket.onmessage = (event) => {
     const janusData = JSON.parse(event.data);
@@ -34,16 +34,18 @@ const JanusVideo = ({ url }) => {
             sessionId = janusData.data.id;
 
             requestType = "attach";
-            websocket.send(JSON.stringify({
-              "janus": "attach",
-              "session_id": sessionId,
-              "plugin": "janus.plugin.streaming",
-              "transaction": "nati"
-            }))
+            websocket.send(
+              JSON.stringify({
+                janus: "attach",
+                session_id: sessionId,
+                plugin: "janus.plugin.streaming",
+                transaction: "nati",
+              })
+            );
             break;
-          
+
           case "attach":
-            pluginId = janusData.data.id
+            pluginId = janusData.data.id;
             break;
         }
         break;
@@ -65,7 +67,7 @@ const JanusVideo = ({ url }) => {
 
       case "error":
         break;
-        
+
       case "event":
         break;
 
@@ -75,15 +77,23 @@ const JanusVideo = ({ url }) => {
       default:
         console.log("unknown error");
     }
-  }
+  };
 
   return (
     <div className="stream-content">
-      <button id="start" onClick={ () => websocket.send(JSON.stringify({ "janus": "create", "transaction": "nati" })) } disabled={ connected }>
+      <button
+        id="start"
+        onClick={() =>
+          websocket.send(
+            JSON.stringify({ janus: "create", transaction: "nati" })
+          )
+        }
+        disabled={connected}
+      >
         Get Session
       </button>
     </div>
   );
 };
 
-export default Video;
+export default JanusVideo;

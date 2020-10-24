@@ -1,5 +1,5 @@
 import React from "react";
-import App from "./App.css";
+import "./App.css";
 import JanusVideo from "./Video/JanusVideo/JanusVideo";
 
 function App() {
