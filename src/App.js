@@ -1,9 +1,9 @@
-import React from 'react';
-import App from './App.css';
-import JanusVideo from './Video/JanusVideo/JanusVideo';
+import React from "react";
+import App from "./App.css";
+import JanusVideo from "./Video/JanusVideo/JanusVideo";
 
 function App() {
-    return <JanusVideo url="http://192.168.0.8/dash/doorcam.mpd" />;
+  return <JanusVideo url="http://192.168.0.8/dash/doorcam.mpd" />;
 }
 
 export default App;
