@@ -1,6 +1,6 @@
 import React from "react";
 
-const Video = ({ url }) => {
+const JanusVideo = ({ url }) => {
   const server = "ws://192.168.0.8:8188";
   const protocol = "janus-protocol";
   let connected = false;
