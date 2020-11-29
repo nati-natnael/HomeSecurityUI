@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { RequestType } from "./janus_constants";
+import styles from "./JanusVideo.css";
 
 const server = "ws://192.168.0.8:8188";
 const protocol = "janus-protocol";
@@ -38,7 +39,7 @@ const JanusVideo = () => {
     );
   };
 
-  const requestStreamList = (webSocketConn, sessId, handleId) => {
+  const getStreamList = (webSocketConn, sessId, handleId) => {
     webSocketConn.send(
       JSON.stringify({
         janus: "message",
@@ -58,10 +59,42 @@ const JanusVideo = () => {
         janus: "message",
         session_id: sessId,
         handle_id: handleId,
-        transaction: "sBJerthH6Vc6",
+        transaction: "nati",
         body: {
           request: "watch",
           id: parseInt(streamIndex),
+        },
+      })
+    );
+  };
+
+  const startStream = (webSocketConn, sessId, handleId, answer) => {
+    webSocketConn.send(
+      JSON.stringify({
+        janus: "message",
+        session_id: sessId,
+        handle_id: handleId,
+        transaction: "nati",
+        body: {
+          request: "start",
+        },
+        jsep: {
+          type: answer.type,
+          sdp: answer.sdp,
+        },
+      })
+    );
+  };
+
+  const stopStream = (webSocketConn, sessId, handleId, streamIndex) => {
+    webSocketConn.send(
+      JSON.stringify({
+        janus: "message",
+        session_id: sessId,
+        handle_id: handleId,
+        transaction: "nati",
+        body: {
+          request: "stop",
         },
       })
     );
@@ -78,8 +111,6 @@ const JanusVideo = () => {
 
   websocket.onmessage = async (event) => {
     const janusData = JSON.parse(event.data);
-
-    console.log(janusData);
 
     switch (janusData["janus"]) {
       case "keepalive":
@@ -98,7 +129,7 @@ const JanusVideo = () => {
 
           case RequestType.ATTACH:
             pluginId = janusData.data.id;
-            requestStreamList(websocket, sessionId, pluginId);
+            getStreamList(websocket, sessionId, pluginId);
             requestType = RequestType.LIST;
             break;
 
@@ -115,7 +146,6 @@ const JanusVideo = () => {
             break;
 
           case RequestType.WATCH:
-            console.log(janusData);
             break;
 
           default:
@@ -124,7 +154,6 @@ const JanusVideo = () => {
         break;
 
       case "trickle":
-        console.log(janusData);
         break;
 
       case "webrtcup":
@@ -158,41 +187,22 @@ const JanusVideo = () => {
             );
 
             rtcPeerConnection.ontrack = (event) => {
-              console.log(event.streams);
-
               const remoteVidElem = document.getElementById("remotevideo");
               remoteVidElem.srcObject = event.streams[0];
             };
 
             rtcPeerConnection.setRemoteDescription(janusData.jsep).then(() => {
-              console.log("Remote Session Description Accepted");
-
               rtcPeerConnection.createAnswer({}).then((answer) => {
                 rtcPeerConnection
                   .setLocalDescription(answer)
                   .catch((err) => console.log(err));
 
-                websocket.send(
-                  JSON.stringify({
-                    janus: "message",
-                    session_id: sessionId,
-                    handle_id: pluginId,
-                    transaction: "sBJerthH6Vc6",
-                    body: {
-                      request: "start",
-                    },
-                    jsep: {
-                      type: answer.type,
-                      sdp: answer.sdp,
-                    },
-                  })
-                );
+                startStream(websocket, sessionId, pluginId, answer);
               });
             });
             break;
 
           case "starting":
-            console.log(janusData);
             break;
 
           default:
@@ -204,7 +214,7 @@ const JanusVideo = () => {
         break;
 
       default:
-        console.log("unknown error");
+        break;
     }
   };
 
@@ -212,7 +222,9 @@ const JanusVideo = () => {
     requestWatch(websocket, sessionId, pluginId, selectedStream);
   };
 
-  const handleStop = () => {};
+  const handleStop = () => {
+    stopStream(websocket, sessionId, pluginId);
+  };
 
   const onConnect = () => {
     if (connected) {
@@ -223,21 +235,29 @@ const JanusVideo = () => {
 
       return (
         <>
-          <select
-            onChange={(event) => {
-              selectedStream = event.target.value;
-            }}
-          >
-            <option value="0">None</option>
-            {streamList.map((stream, index) => (
-              <option key={index} value={stream.id}>
-                {stream.name}
-              </option>
-            ))}
-          </select>
-          <video id="remotevideo" playsInline />
-          <button onClick={handlePlay}>Play</button>
-          <button onClick={handleStop}>Stop</button>
+          <div className={styles.streamContent}>
+            <select
+              onChange={(event) => {
+                selectedStream = event.target.value;
+              }}
+            >
+              <option value="0">None</option>
+              {streamList.map((stream, index) => (
+                <option key={index} value={stream.id}>
+                  {stream.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="stream-display">
+            <div className="stream-display-panel">
+              <video id="remotevideo" autoPlay playsInline />
+            </div>
+            <div className="stream-display-control">
+              <button onClick={handlePlay}>Play</button>
+              <button onClick={handleStop}>Stop</button>
+            </div>
+          </div>
         </>
       );
     } else {

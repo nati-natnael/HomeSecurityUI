@@ -1,0 +1,23 @@
+select {
+  padding: 5px;
+  margin-bottom: 5px;
+}
+
+.stream-content {
+  display: inline-block;
+  padding: 2px;
+  border: 1px solid black;
+}
+
+.stream-display {
+}
+
+.stream-display-panel {
+  background-color: lightgrey;
+  padding: 5px;
+  text-align: center;
+}
+
+.stream-display-control {
+  padding: 5px;
+}
