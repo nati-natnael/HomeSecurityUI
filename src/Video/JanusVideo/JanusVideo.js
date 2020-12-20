@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { Card, Button } from "react-bootstrap";
 import { RequestType } from "./janus_constants";
 import styles from "./JanusVideo.css";
+import noVideoImg from "./no-video.png";
 
 const server = "ws://192.168.0.8:8188";
 const protocol = "janus-protocol";
@@ -17,8 +19,7 @@ websocket.onerror = (event) => {
 const JanusVideo = () => {
   const [connected, setConnected] = useState(false);
   const [streamList, setStreamList] = useState([]);
-
-  console.log("rendering");
+  const [playing, setPlaying] = useState(false);
 
   let selectedStream = null;
 
@@ -87,6 +88,7 @@ const JanusVideo = () => {
   };
 
   const stopStream = (webSocketConn, sessId, handleId, streamIndex) => {
+    setPlaying(false);
     webSocketConn.send(
       JSON.stringify({
         janus: "message",
@@ -174,6 +176,8 @@ const JanusVideo = () => {
       case "event":
         switch (janusData.plugindata.data.result.status) {
           case "preparing":
+            setPlaying(true);
+
             let rtcPeerConnection = new RTCPeerConnection(
               {
                 iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -234,31 +238,41 @@ const JanusVideo = () => {
       }
 
       return (
-        <>
-          <div className={styles.streamContent}>
-            <select
-              onChange={(event) => {
-                selectedStream = event.target.value;
-              }}
-            >
-              <option value="0">None</option>
-              {streamList.map((stream, index) => (
-                <option key={index} value={stream.id}>
-                  {stream.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="stream-display">
-            <div className="stream-display-panel">
-              <video id="remotevideo" autoPlay playsInline />
-            </div>
-            <div className="stream-display-control">
-              <button onClick={handlePlay}>Play</button>
-              <button onClick={handleStop}>Stop</button>
-            </div>
-          </div>
-        </>
+        <div className={styles.streamContent}>
+          <Card border="primary">
+            <Card.Header>
+              <form>
+                <select
+                  onChange={(event) => {
+                    selectedStream = event.target.value;
+                  }}
+                >
+                  <option value="0">None</option>
+                  {streamList.map((stream, index) => (
+                    <option key={index} value={stream.id}>
+                      {stream.name}
+                    </option>
+                  ))}
+                </select>
+              </form>
+            </Card.Header>
+            <Card.Body>
+              {playing ? (
+                <video id="remotevideo" width="360" autoPlay playsInline />
+              ) : (
+                <Card.Img src={noVideoImg} />
+              )}
+            </Card.Body>
+            <Card.Footer>
+              <Button variant="primary" onClick={handlePlay}>
+                Play
+              </Button>{" "}
+              <Button variant="secondary" onClick={handleStop}>
+                Stop
+              </Button>
+            </Card.Footer>
+          </Card>
+        </div>
       );
     } else {
       return <>Not connected</>;
