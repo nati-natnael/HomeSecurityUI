@@ -3,6 +3,7 @@ import { Card, Button } from "react-bootstrap";
 import { RequestType } from "./janus_constants";
 import styles from "./JanusVideo.css";
 import noVideoImg from "./no-video.png";
+import noVideoTvStatic from "./tv-static.gif";
 
 const server = "ws://192.168.0.8:8188";
 const protocol = "janus-protocol";
@@ -17,6 +18,7 @@ const JanusVideo = () => {
   const [playing, setPlaying] = useState(false);
 
   let selectedStream = null;
+  let keepAliveHandle = null;
 
   useEffect(() => {
     const newConnection = new WebSocket(server, protocol);
@@ -91,6 +93,16 @@ const JanusVideo = () => {
   };
 
   const startStream = (webSocketConn, sessId, handleId, answer) => {
+    keepAliveHandle = setInterval(() => {
+      webSocketConn.send(
+        JSON.stringify({
+          janus: "keepalive",
+          session_id: sessId,
+          transaction: "nati",
+        })
+      );
+    }, 60000);
+
     webSocketConn.send(
       JSON.stringify({
         janus: "message",
@@ -109,6 +121,7 @@ const JanusVideo = () => {
   };
 
   const stopStream = (webSocketConn, sessId, handleId, streamIndex) => {
+    clearInterval(keepAliveHandle);
     setPlaying(false);
     webSocketConn.send(
       JSON.stringify({
@@ -261,11 +274,6 @@ const JanusVideo = () => {
 
   const onConnect = () => {
     if (connected) {
-      // if (!sessionId) {
-      //   createSession(websocket);
-      //   requestType = RequestType.CREATE;
-      // }
-
       return (
         <div className={styles.streamContent}>
           <Card border="primary">
@@ -304,7 +312,11 @@ const JanusVideo = () => {
         </div>
       );
     } else {
-      return <>Not connected</>;
+      return (
+        <Card>
+          <Card.Img src={noVideoTvStatic} />
+        </Card>
+      );
     }
   };
 
