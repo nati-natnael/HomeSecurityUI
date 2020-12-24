@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button } from "react-bootstrap";
+import { Card, Button, ListGroup } from "react-bootstrap";
 import { RequestType } from "./janus_constants";
 import styles from "./JanusVideo.css";
 import noVideoImg from "./no-video.png";
@@ -9,7 +9,16 @@ const server = "ws://192.168.0.8:8188";
 const protocol = "janus-protocol";
 
 const JanusVideo = () => {
-  const [websocket, setWebsocket] = useState(null);
+  const [websocketData, setWebsocketData] = useState({
+    websocket: null,
+    connected: false,
+  });
+
+  const [sessionData, setSessionData] = useState({
+    session: null,
+    plugin: null,
+  });
+
   const [connected, setConnected] = useState(false);
   const [requestType, setRequestType] = useState(RequestType.NONE);
   const [sessionId, setSessionId] = useState(null);
@@ -22,29 +31,39 @@ const JanusVideo = () => {
 
   useEffect(() => {
     const newConnection = new WebSocket(server, protocol);
-    setWebsocket(newConnection);
+    setWebsocketData({ websocket: newConnection, connected: false });
   }, []);
 
   useEffect(() => {
-    if (websocket && connected) {
-      createSession(websocket);
+    if (websocketData.connected) {
+      createSession(websocketData.websocket);
       setRequestType(RequestType.CREATE);
     }
-  }, [websocket, connected]);
+  }, [websocketData]);
 
   useEffect(() => {
-    if (websocket && connected && sessionId) {
-      attachToStreamingPlugin(websocket, sessionId);
+    if (websocketData.connected && sessionData.session) {
+      attachToStreamingPlugin(websocketData.websocket, sessionData.session);
       setRequestType(RequestType.ATTACH);
     }
-  }, [websocket, connected, sessionId]);
+  }, [websocketData, sessionData.session]);
 
   useEffect(() => {
-    if (websocket && connected && sessionId && pluginId) {
-      getStreamList(websocket, sessionId, pluginId);
+    if (websocketData.connected && sessionData.session && sessionData.plugin) {
+      getStreamList(
+        websocketData.websocket,
+        sessionData.session,
+        sessionData.plugin.handle
+      );
+
       setRequestType(RequestType.LIST);
     }
-  }, [websocket, connected, sessionId, pluginId]);
+  }, [
+    websocketData,
+    sessionData.session,
+    sessionData.plugin,
+    sessionData.plugin?.handle,
+  ]);
 
   const createSession = (webSocketConn) => {
     webSocketConn.send(
@@ -136,21 +155,21 @@ const JanusVideo = () => {
     );
   };
 
-  if (websocket) {
-    websocket.onopen = (event) => {
-      setConnected(true);
+  if (websocketData.websocket) {
+    websocketData.websocket.onopen = (event) => {
+      setWebsocketData({ ...websocketData, connected: true });
       console.log("inside on open");
     };
 
-    websocket.onclose = (event) => {
+    websocketData.websocket.onclose = (event) => {
       setConnected(false);
     };
 
-    websocket.onerror = (event) => {
+    websocketData.websocket.onerror = (event) => {
       console.log("connection error");
     };
 
-    websocket.onmessage = async (event) => {
+    websocketData.websocket.onmessage = async (event) => {
       const janusData = JSON.parse(event.data);
 
       switch (janusData["janus"]) {
@@ -163,23 +182,30 @@ const JanusVideo = () => {
         case "success":
           switch (requestType) {
             case RequestType.CREATE:
-              setSessionId(janusData.data.id);
+              setSessionData({ ...sessionData, session: janusData.data.id });
               break;
 
             case RequestType.ATTACH:
-              setPluginId(janusData.data.id);
+              setSessionData({
+                ...sessionData,
+                plugin: { handle: janusData.data.id, streams: [] },
+              });
               break;
 
             case RequestType.LIST:
-              if (streamList.length === 0) {
-                console.log(janusData.plugindata.data.list);
-                setStreamList(
-                  janusData.plugindata.data.list.map((data) => {
-                    return { id: data.id, name: data.description };
-                  })
-                );
-              }
-
+              setSessionData({
+                ...sessionData,
+                plugin: {
+                  ...sessionData.plugin,
+                  streams: janusData.plugindata.data.list.map((data) => {
+                    return {
+                      id: data.id,
+                      type: data.type,
+                      description: data.description,
+                    };
+                  }),
+                },
+              });
               setRequestType(RequestType.NONE);
               break;
 
@@ -242,7 +268,12 @@ const JanusVideo = () => {
                       .setLocalDescription(answer)
                       .catch((err) => console.log(err));
 
-                    startStream(websocket, sessionId, pluginId, answer);
+                    startStream(
+                      websocketData.websocket,
+                      sessionId,
+                      pluginId,
+                      answer
+                    );
                   });
                 });
               break;
@@ -264,50 +295,25 @@ const JanusVideo = () => {
     };
   }
 
-  const handlePlay = () => {
-    requestWatch(websocket, sessionId, pluginId, selectedStream);
-  };
-
-  const handleStop = () => {
-    stopStream(websocket, sessionId, pluginId);
-  };
-
   const onConnect = () => {
     if (connected) {
       return (
         <div className={styles.streamContent}>
-          <Card border="primary">
-            <Card.Header>
-              <form>
-                <select
-                  onChange={(event) => {
-                    selectedStream = event.target.value;
-                  }}
-                >
-                  <option value="0">None</option>
-                  {streamList?.map((stream, index) => (
-                    <option key={index} value={stream.id}>
-                      {stream.name}
-                    </option>
-                  ))}
-                </select>
-              </form>
-            </Card.Header>
+          <Card>
             <Card.Body>
               {playing ? (
                 <video id="remotevideo" width="360" autoPlay playsInline />
               ) : (
                 <Card.Img src={noVideoImg} />
               )}
+              <ListGroup variant="flush">
+                {sessionData?.map((stream, index) => (
+                  <ListGroup.Item key={index} value={stream.id}>
+                    {stream.name}
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
             </Card.Body>
-            <Card.Footer>
-              <Button variant="primary" onClick={handlePlay}>
-                Play
-              </Button>{" "}
-              <Button variant="secondary" onClick={handleStop}>
-                Stop
-              </Button>
-            </Card.Footer>
           </Card>
         </div>
       );
