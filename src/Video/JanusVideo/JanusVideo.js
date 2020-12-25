@@ -218,7 +218,7 @@ const JanusVideo = (props) => {
         setSessionData({ ...sessionData, streamData: newStreamData });
       }
     }
-  }, [websocketData, sessionData.session, sessionData.streamData]);
+  }, [websocketData, sessionData, sessionData.streamData]);
 
   useEffect(() => {
     if (websocketData.connected && sessionData.tempPlugin) {
