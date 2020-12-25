@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, ListGroup } from "react-bootstrap";
+import { Card } from "react-bootstrap";
 import { RequestType } from "./janus_constants";
 import styles from "./JanusVideo.css";
 import noVideoImg from "./no-video.png";
@@ -21,10 +21,11 @@ const JanusVideo = (props) => {
   });
 
   const [requestType, setRequestType] = useState(RequestType.NONE);
-  const [playing, setPlaying] = useState(false);
 
-  let selectedStream = null;
-  let keepAliveHandle = null;
+  console.log(websocketData);
+  console.log(sessionData);
+
+  // let keepAliveHandle = null;
 
   if (websocketData.websocket) {
     websocketData.websocket.onopen = (event) => {
@@ -60,7 +61,7 @@ const JanusVideo = (props) => {
             case RequestType.ATTACH:
               const newStreamData = { ...sessionData.streamData };
               for (const stream of newStreamData.streams) {
-                if (stream.id == janusData.transaction) {
+                if (`${stream.id}` === janusData.transaction) {
                   stream.handle = janusData.data.id;
                 }
               }
@@ -79,6 +80,8 @@ const JanusVideo = (props) => {
                       id: data.id,
                       type: data.type,
                       description: data.description,
+                      rtcPeerConnection: null,
+                      pluginAttachRequested: false,
                       watchRequested: false,
                     };
                   }),
@@ -99,43 +102,57 @@ const JanusVideo = (props) => {
         case "event":
           switch (janusData?.plugindata?.data?.result?.status) {
             case "preparing":
-              setPlaying(true);
+              const newStreamData = { ...sessionData.streamData };
+              for (const stream of newStreamData.streams) {
+                if (`${stream.id}` === janusData.transaction) {
+                  if (stream.rtcPeerConnection) {
+                    stream.rtcPeerConnection.close();
+                  }
 
-              let rtcPeerConnection = new RTCPeerConnection(
-                {
-                  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-                  iceTransportPolicy: undefined,
-                  bundlePolicy: undefined,
-                  sdpSemantics: "unified-plan",
-                },
-                {
-                  optional: [{ DtlsSrtpKeyAgreement: true }],
+                  stream.rtcPeerConnection = new RTCPeerConnection(
+                    {
+                      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+                      iceTransportPolicy: undefined,
+                      bundlePolicy: undefined,
+                      sdpSemantics: "unified-plan",
+                    },
+                    {
+                      optional: [{ DtlsSrtpKeyAgreement: true }],
+                    }
+                  );
+
+                  stream.rtcPeerConnection.ontrack = (event) => {
+                    const remoteVidElem = document.getElementById(
+                      `remotevideo_${stream.id}`
+                    );
+
+                    if (event.streams[0]) {
+                      remoteVidElem.srcObject = event.streams[0];
+                    }
+                  };
+
+                  stream.rtcPeerConnection
+                    .setRemoteDescription(janusData.jsep)
+                    .then(() => {
+                      stream.rtcPeerConnection
+                        .createAnswer({})
+                        .then((answer) => {
+                          stream.rtcPeerConnection
+                            .setLocalDescription(answer)
+                            .catch((err) => console.log(err));
+
+                          startStream(
+                            websocketData.websocket,
+                            sessionData.session,
+                            stream.handle,
+                            answer
+                          );
+                        });
+                    });
+
+                  break;
                 }
-              );
-
-              // rtcPeerConnection.ontrack = (event) => {
-              //   const remoteVidElem = document.getElementById("remotevideo");
-              //   if (event.streams[0]) {
-              //     remoteVidElem.srcObject = event.streams[0];
-              //   }
-              // };
-
-              // rtcPeerConnection
-              //   .setRemoteDescription(janusData.jsep)
-              //   .then(() => {
-              //     rtcPeerConnection.createAnswer({}).then((answer) => {
-              //       rtcPeerConnection
-              //         .setLocalDescription(answer)
-              //         .catch((err) => console.log(err));
-
-              //       startStream(
-              //         websocketData.websocket,
-              //         sessionId,
-              //         pluginId,
-              //         answer
-              //       );
-              //     });
-              //   });
+              }
               break;
 
             case "starting":
@@ -154,7 +171,7 @@ const JanusVideo = (props) => {
         case "error":
         case "timeout":
         default:
-          console.log(janusData);
+          // console.log(janusData);
           break;
       }
     };
@@ -182,16 +199,26 @@ const JanusVideo = (props) => {
 
   useEffect(() => {
     if (websocketData.connected && sessionData.streamData.count > 0) {
+      let updateSessionData = false;
+      const newStreamData = { ...sessionData.streamData };
       for (const stream of sessionData.streamData.streams) {
-        attachToStreamingPlugin(
-          websocketData.websocket,
-          sessionData.session,
-          stream.id
-        );
+        if (!stream.handle && !stream.pluginAttachRequested) {
+          updateSessionData = true;
+          stream.pluginAttachRequested = true;
+          attachToStreamingPlugin(
+            websocketData.websocket,
+            sessionData.session,
+            stream.id
+          );
+        }
       }
-      setRequestType(RequestType.ATTACH);
+
+      if (updateSessionData) {
+        setRequestType(RequestType.ATTACH);
+        setSessionData({ ...sessionData, streamData: newStreamData });
+      }
     }
-  }, [websocketData, sessionData.session, sessionData.streamData.count]);
+  }, [websocketData, sessionData.session, sessionData.streamData]);
 
   useEffect(() => {
     if (websocketData.connected && sessionData.tempPlugin) {
@@ -207,11 +234,11 @@ const JanusVideo = (props) => {
 
   useEffect(() => {
     if (websocketData.connected && sessionData.streamData.streams) {
-      let updateState = false;
+      let updateSessionData = false;
       const newStreamData = { ...sessionData.streamData };
       for (const stream of newStreamData.streams) {
         if (stream.handle && !stream.watchRequested) {
-          updateState = true;
+          updateSessionData = true;
           stream.watchRequested = true;
 
           requestWatch(
@@ -223,11 +250,11 @@ const JanusVideo = (props) => {
         }
       }
 
-      if (updateState) {
+      if (updateSessionData) {
         setSessionData({ ...sessionData, streamData: newStreamData });
       }
     }
-  }, [websocketData, sessionData.session, sessionData.streamData]);
+  }, [websocketData, sessionData, sessionData.streamData]);
 
   const createSession = (webSocketConn) => {
     webSocketConn.send(
@@ -276,15 +303,15 @@ const JanusVideo = (props) => {
   };
 
   const startStream = (webSocketConn, sessId, handleId, answer) => {
-    keepAliveHandle = setInterval(() => {
-      webSocketConn.send(
-        JSON.stringify({
-          janus: "keepalive",
-          session_id: sessId,
-          transaction: "nati",
-        })
-      );
-    }, 60000);
+    // keepAliveHandle = setInterval(() => {
+    //   webSocketConn.send(
+    //     JSON.stringify({
+    //       janus: "keepalive",
+    //       session_id: sessId,
+    //       transaction: "nati",
+    //     })
+    //   );
+    // }, 60000);
 
     webSocketConn.send(
       JSON.stringify({
@@ -303,40 +330,44 @@ const JanusVideo = (props) => {
     );
   };
 
-  const stopStream = (webSocketConn, sessId, handleId) => {
-    clearInterval(keepAliveHandle);
-    setPlaying(false);
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "message",
-        session_id: sessId,
-        handle_id: handleId,
-        transaction: "nati",
-        body: {
-          request: "stop",
-        },
-      })
-    );
-  };
+  // const stopStream = (webSocketConn, sessId, handleId) => {
+  //   clearInterval(keepAliveHandle);
+  //   webSocketConn.send(
+  //     JSON.stringify({
+  //       janus: "message",
+  //       session_id: sessId,
+  //       handle_id: handleId,
+  //       transaction: "nati",
+  //       body: {
+  //         request: "stop",
+  //       },
+  //     })
+  //   );
+  // };
 
-  const onConnect = () => {
+  const render = () => {
     if (websocketData.connected) {
       return (
         <div className={styles.streamContent}>
           <Card>
             <Card.Body>
-              {playing ? (
+              {sessionData.streamData.streams.map((stream, i) => {
+                return (
+                  <video
+                    key={i}
+                    id={`remotevideo_${stream.id}`}
+                    poster={noVideoImg}
+                    width="360"
+                    autoPlay
+                    playsInline
+                  />
+                );
+              })}
+              {/* {playing ? (
                 <video id="remotevideo" width="360" autoPlay playsInline />
               ) : (
                 <Card.Img src={noVideoImg} />
-              )}
-              {/* <ListGroup variant="flush">
-                {sessionData.plugin.streams.map((stream, index) => (
-                  <ListGroup.Item key={index} value={stream.id}>
-                    {stream.name}
-                  </ListGroup.Item>
-                ))}
-              </ListGroup> */}
+              )} */}
             </Card.Body>
           </Card>
         </div>
@@ -350,7 +381,7 @@ const JanusVideo = (props) => {
     }
   };
 
-  return <div className="stream-content">{onConnect()}</div>;
+  return <div className="stream-content">{render()}</div>;
 };
 
 export default JanusVideo;
