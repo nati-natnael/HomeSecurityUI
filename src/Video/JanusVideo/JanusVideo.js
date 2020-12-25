@@ -105,21 +105,19 @@ const JanusVideo = (props) => {
               const newStreamData = { ...sessionData.streamData };
               for (const stream of newStreamData.streams) {
                 if (`${stream.id}` === janusData.transaction) {
-                  if (stream.rtcPeerConnection) {
-                    stream.rtcPeerConnection.close();
+                  if (!stream.rtcPeerConnection) {
+                    stream.rtcPeerConnection = new RTCPeerConnection(
+                      {
+                        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+                        iceTransportPolicy: undefined,
+                        bundlePolicy: undefined,
+                        sdpSemantics: "unified-plan",
+                      },
+                      {
+                        optional: [{ DtlsSrtpKeyAgreement: true }],
+                      }
+                    );
                   }
-
-                  stream.rtcPeerConnection = new RTCPeerConnection(
-                    {
-                      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-                      iceTransportPolicy: undefined,
-                      bundlePolicy: undefined,
-                      sdpSemantics: "unified-plan",
-                    },
-                    {
-                      optional: [{ DtlsSrtpKeyAgreement: true }],
-                    }
-                  );
 
                   stream.rtcPeerConnection.ontrack = (event) => {
                     const remoteVidElem = document.getElementById(
@@ -363,11 +361,6 @@ const JanusVideo = (props) => {
                   />
                 );
               })}
-              {/* {playing ? (
-                <video id="remotevideo" width="360" autoPlay playsInline />
-              ) : (
-                <Card.Img src={noVideoImg} />
-              )} */}
             </Card.Body>
           </Card>
         </div>
