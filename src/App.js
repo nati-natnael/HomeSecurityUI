@@ -10,7 +10,11 @@ function App() {
         <div className="main-content">
           <Card>
             <Card.Body>
-              <JanusVideo />
+              <JanusVideo
+                ip="192.168.0.8"
+                port="8188"
+                protocol="janus-protocol"
+              />
             </Card.Body>
           </Card>
         </div>

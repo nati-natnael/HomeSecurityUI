@@ -1,7 +1,8 @@
 export const RequestType = {
   NONE: 0,
   CREATE: 1,
-  ATTACH: 2,
-  LIST: 3,
-  WATCH: 4,
+  PRE_ATTACH: 2,
+  ATTACH: 3,
+  LIST: 4,
+  WATCH: 5,
 };
