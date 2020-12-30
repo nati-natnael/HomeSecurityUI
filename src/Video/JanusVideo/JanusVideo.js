@@ -1,45 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card } from "react-bootstrap";
 import { RequestType } from "./janus_constants";
 import styles from "./JanusVideo.css";
 import noVideoImg from "./no-video.png";
 import noVideoTvStatic from "./tv-static.gif";
 
-const JanusVideo = (props) => {
-  const [websocketData, setWebsocketData] = useState({
-    websocket: null,
-    connected: false,
-  });
+const initialWebsocketData = {
+  websocket: null,
+  connected: false,
+};
 
-  const [sessionData, setSessionData] = useState({
-    session: null,
-    tempPlugin: null,
-    streamData: {
-      count: 0,
-      streams: [],
-    },
-  });
+const initialSessionData = {
+  session: null,
+  tempPlugin: null,
+  streamData: {
+    count: 0,
+    streams: [],
+  },
+};
+
+const JanusVideo = (props) => {
+  const keepAliveHandle = useRef(null);
+  const prevWebsocketData = useRef(null);
+  const prevSessionData = useRef(null);
 
   const [requestType, setRequestType] = useState(RequestType.NONE);
-
-  console.log(websocketData);
-  console.log(sessionData);
-
-  // let keepAliveHandle = null;
+  const [websocketData, setWebsocketData] = useState(initialWebsocketData);
+  const [sessionData, setSessionData] = useState(initialSessionData);
 
   if (websocketData.websocket) {
     websocketData.websocket.onopen = (event) => {
       setWebsocketData({ ...websocketData, connected: true });
-      console.log("inside on open");
     };
 
     websocketData.websocket.onclose = (event) => {
       setWebsocketData({ ...websocketData, connected: false });
     };
 
-    websocketData.websocket.onerror = (event) => {
-      console.log("connection error");
-    };
+    websocketData.websocket.onerror = (event) => {};
 
     websocketData.websocket.onmessage = async (event) => {
       const janusData = JSON.parse(event.data);
@@ -89,9 +87,6 @@ const JanusVideo = (props) => {
               });
 
               setRequestType(RequestType.WATCH);
-              break;
-
-            case RequestType.WATCH:
               break;
 
             default:
@@ -147,13 +142,13 @@ const JanusVideo = (props) => {
                           );
                         });
                     });
-
                   break;
                 }
               }
               break;
 
             case "starting":
+            case "started":
             default:
               break;
           }
@@ -169,17 +164,27 @@ const JanusVideo = (props) => {
         case "error":
         case "timeout":
         default:
-          // console.log(janusData);
           break;
       }
     };
   }
 
   useEffect(() => {
+    return () => {
+      unmount();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     const server = `ws://${props.ip}:${props.port}`;
     const newConnection = new WebSocket(server, props.protocol);
     setWebsocketData({ websocket: newConnection, connected: false });
-  }, [props.ip, props.port, props.protocol]);
+  }, [props]);
+
+  useEffect(() => {
+    prevWebsocketData.current = websocketData;
+    prevSessionData.current = sessionData;
+  }, [websocketData, sessionData]);
 
   useEffect(() => {
     if (websocketData.connected) {
@@ -256,7 +261,13 @@ const JanusVideo = (props) => {
 
   const createSession = (webSocketConn) => {
     webSocketConn.send(
-      JSON.stringify({ janus: "create", transaction: "nati" })
+      JSON.stringify({ janus: "create", transaction: "janus" })
+    );
+  };
+
+  const destroySession = (webSocketConn) => {
+    webSocketConn.send(
+      JSON.stringify({ janus: "destroy", transaction: "janus" })
     );
   };
 
@@ -266,7 +277,21 @@ const JanusVideo = (props) => {
         janus: "attach",
         session_id: sessionId,
         plugin: "janus.plugin.streaming",
-        transaction: transaction ? `${transaction}` : "nati",
+        transaction: transaction ? `${transaction}` : "janus",
+      })
+    );
+  };
+
+  const detachToStreamingPlugin = (webSocketConn, sessId, handleId) => {
+    webSocketConn.send(
+      JSON.stringify({
+        janus: "message",
+        session_id: sessId,
+        handle_id: handleId,
+        transaction: "janus",
+        body: {
+          request: "detach",
+        },
       })
     );
   };
@@ -277,7 +302,7 @@ const JanusVideo = (props) => {
         janus: "message",
         session_id: sessId,
         handle_id: handleId,
-        transaction: "nati",
+        transaction: "janus",
         body: {
           request: "list",
         },
@@ -291,7 +316,7 @@ const JanusVideo = (props) => {
         janus: "message",
         session_id: sessId,
         handle_id: handleId,
-        transaction: streamIndex ? `${streamIndex}` : "nati",
+        transaction: streamIndex ? `${streamIndex}` : "janus",
         body: {
           request: "watch",
           id: parseInt(streamIndex),
@@ -301,22 +326,22 @@ const JanusVideo = (props) => {
   };
 
   const startStream = (webSocketConn, sessId, handleId, answer) => {
-    // keepAliveHandle = setInterval(() => {
-    //   webSocketConn.send(
-    //     JSON.stringify({
-    //       janus: "keepalive",
-    //       session_id: sessId,
-    //       transaction: "nati",
-    //     })
-    //   );
-    // }, 60000);
+    keepAliveHandle.current = setInterval(() => {
+      webSocketConn.send(
+        JSON.stringify({
+          janus: "keepalive",
+          session_id: sessId,
+          transaction: "janus",
+        })
+      );
+    }, 60000);
 
     webSocketConn.send(
       JSON.stringify({
         janus: "message",
         session_id: sessId,
         handle_id: handleId,
-        transaction: "nati",
+        transaction: "janus",
         body: {
           request: "start",
         },
@@ -328,20 +353,56 @@ const JanusVideo = (props) => {
     );
   };
 
-  // const stopStream = (webSocketConn, sessId, handleId) => {
-  //   clearInterval(keepAliveHandle);
-  //   webSocketConn.send(
-  //     JSON.stringify({
-  //       janus: "message",
-  //       session_id: sessId,
-  //       handle_id: handleId,
-  //       transaction: "nati",
-  //       body: {
-  //         request: "stop",
-  //       },
-  //     })
-  //   );
-  // };
+  const stopStream = (webSocketConn, sessId, handleId) => {
+    webSocketConn.send(
+      JSON.stringify({
+        janus: "message",
+        session_id: sessId,
+        handle_id: handleId,
+        transaction: "janus",
+        body: {
+          request: "stop",
+        },
+      })
+    );
+  };
+
+  const unmount = () => {
+    const webSockData = prevWebsocketData.current;
+    const sessData = prevSessionData.current;
+
+    clearInterval(keepAliveHandle.current);
+
+    if (webSockData.websocket.readyState === WebSocket.CLOSED) {
+      if (sessData.tempPlugin) {
+        detachToStreamingPlugin(
+          webSockData.websocket,
+          sessData.session,
+          sessData.tempPlugin
+        );
+      }
+
+      for (const stream of sessData.streamData.streams) {
+        if (stream.handle && stream.pluginAttachRequested) {
+          stopStream(webSockData.websocket, sessData.session, stream.handle);
+
+          stream.rtcPeerConnection.close();
+
+          detachToStreamingPlugin(
+            webSockData.websocket,
+            sessData.session,
+            stream.handle
+          );
+        }
+      }
+
+      if (sessionData.session) {
+        destroySession(webSockData.websocket, sessionData.session);
+      }
+
+      webSockData.websocket.close();
+    }
+  };
 
   const render = () => {
     if (websocketData.connected) {
@@ -357,6 +418,7 @@ const JanusVideo = (props) => {
                     poster={noVideoImg}
                     width="360"
                     autoPlay
+                    muted="muted"
                     playsInline
                   />
                 );
