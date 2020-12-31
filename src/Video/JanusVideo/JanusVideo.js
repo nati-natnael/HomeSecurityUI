@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Card } from "react-bootstrap";
-import { RequestType } from "./janus_constants";
 import styles from "./JanusVideo.css";
 import noVideoImg from "./no-video.png";
 import noVideoTvStatic from "./tv-static.gif";
+
+const RequestType = {
+  NONE: 0,
+  CREATE: 1,
+  PRE_ATTACH: 2,
+  ATTACH: 3,
+  LIST: 4,
+  WATCH: 5,
+};
 
 const initialWebsocketData = {
   websocket: null,
