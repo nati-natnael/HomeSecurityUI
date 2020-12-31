@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Card } from "react-bootstrap";
-import styles from "./JanusVideo.css";
+import { Card, Container, Row, Col } from "react-bootstrap";
+import "./JanusVideo.css";
 import noVideoImg from "./no-video.png";
 import noVideoTvStatic from "./tv-static.gif";
 
@@ -37,15 +37,15 @@ const JanusVideo = (props) => {
   const [sessionData, setSessionData] = useState(initialSessionData);
 
   if (websocketData.websocket) {
-    websocketData.websocket.onopen = (event) => {
+    websocketData.websocket.onopen = () => {
       setWebsocketData({ ...websocketData, connected: true });
     };
 
-    websocketData.websocket.onclose = (event) => {
+    websocketData.websocket.onclose = () => {
       setWebsocketData({ ...websocketData, connected: false });
     };
 
-    websocketData.websocket.onerror = (event) => {};
+    websocketData.websocket.onerror = () => {};
 
     websocketData.websocket.onmessage = async (event) => {
       const janusData = JSON.parse(event.data);
@@ -412,29 +412,44 @@ const JanusVideo = (props) => {
     }
   };
 
+  const renderVideos = () => {
+    const videoComponents = [];
+
+    if (sessionData.streamData.streams.length > 0) {
+      const rowCount = Math.floor(
+        Math.sqrt(sessionData.streamData.streams.length + 1)
+      );
+
+      for (let i = 0; i < rowCount; i++) {
+        const cols = [];
+        for (let j = i * rowCount; j < rowCount * i + rowCount; j++) {
+          const stream = sessionData.streamData.streams[j];
+
+          cols.push(
+            <Col lg>
+              <video
+                key={stream.id}
+                id={`remotevideo_${stream.id}`}
+                poster={noVideoImg}
+                width="320"
+                autoPlay
+                muted="muted"
+                playsInline
+              />
+            </Col>
+          );
+        }
+
+        videoComponents.push(<Row>{cols}</Row>);
+      }
+    }
+
+    return videoComponents;
+  };
+
   const render = () => {
     if (websocketData.connected) {
-      return (
-        <div className={styles.streamContent}>
-          <Card>
-            <Card.Body>
-              {sessionData.streamData.streams.map((stream, i) => {
-                return (
-                  <video
-                    key={i}
-                    id={`remotevideo_${stream.id}`}
-                    poster={noVideoImg}
-                    width="360"
-                    autoPlay
-                    muted="muted"
-                    playsInline
-                  />
-                );
-              })}
-            </Card.Body>
-          </Card>
-        </div>
-      );
+      return <Container>{renderVideos()}</Container>;
     } else {
       return (
         <Card>

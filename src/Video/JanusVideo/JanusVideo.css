@@ -6,26 +6,11 @@ select {
 }
 
 video {
-  display: block;
+  width: inherit;
 }
 
-.card-body {
-  padding: 0;
-}
-
-.stream-content {
-  display: inline-block;
-}
-
-.stream-display {
-  text-align: inherit;
-}
-
-.stream-display-panel {
-  background-color: lightgrey;
+.col-lg {
   text-align: center;
-}
-
-.stream-display-control {
-  padding: 5px;
+  background-color: lightgrey;
+  margin: 2px;
 }

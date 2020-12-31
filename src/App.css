@@ -1,41 +1,14 @@
 .wrapper {
-  display: flex;
-  height: 99.9vh;
+  min-height: 99.9vh;
   background-color: #2e2e2e;
 }
 
 .main-content {
-  flex-grow: 50;
-  text-align: center;
-  margin: 50px 0;
+  margin-top: 10px;
 }
 
 .card {
   display: inline-block;
-}
-
-.side-content {
-  flex-grow: 50;
-  margin-left: auto;
-  box-shadow: -2px 0px 5px 0px black;
-}
-
-.nav {
-  flex-direction: column;
-}
-
-.nav-item {
-  flex: 1;
-  cursor: pointer;
-  color: white;
-  text-align: center;
-  padding: 80px 0;
-  box-shadow: 0px 1px 1px 0px black;
-}
-
-.nav-item:first-child {
-  font-weight: bold;
-  font-size: 1.5em;
 }
 
 .nav-item a {

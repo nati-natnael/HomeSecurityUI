@@ -1,5 +1,5 @@
 import React from "react";
-import { Nav, Card } from "react-bootstrap";
+import { Nav, Navbar } from "react-bootstrap";
 import "./App.css";
 import JanusVideo from "./Video/JanusVideo/JanusVideo";
 
@@ -7,23 +7,18 @@ function App() {
   return (
     <>
       <div className="wrapper">
+        <Navbar bg="light" expand="lg">
+          <Navbar.Brand href="#home">Home-Security</Navbar.Brand>
+          <Navbar.Toggle aria-controls="basic-navbar-nav" />
+          <Navbar.Collapse id="basic-navbar-nav">
+            <Nav className="mr-auto">
+              <Nav.Link href="#home">Home</Nav.Link>
+              <Nav.Link href="#link">Link</Nav.Link>
+            </Nav>
+          </Navbar.Collapse>
+        </Navbar>
         <div className="main-content">
-          <Card>
-            <Card.Body>
-              <JanusVideo
-                ip="192.168.0.8"
-                port="8188"
-                protocol="janus-protocol"
-              />
-            </Card.Body>
-          </Card>
-        </div>
-        <div className="side-content">
-          <Nav defaultActiveKey="/home" as="div">
-            <Nav.Item as="div">Home safE</Nav.Item>
-            <Nav.Item as="div">Security</Nav.Item>
-            <Nav.Item as="div">Control</Nav.Item>
-          </Nav>
+          <JanusVideo ip="192.168.0.8" port="8188" protocol="janus-protocol" />
         </div>
       </div>
     </>
