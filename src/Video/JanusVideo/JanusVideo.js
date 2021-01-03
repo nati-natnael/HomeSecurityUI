@@ -416,28 +416,30 @@ const JanusVideo = (props) => {
     const videoComponents = [];
 
     if (sessionData.streamData.streams.length > 0) {
-      const rowCount = Math.floor(
+      const rowCount = Math.ceil(
         Math.sqrt(sessionData.streamData.streams.length + 1)
       );
 
       for (let i = 0; i < rowCount; i++) {
         const cols = [];
-        for (let j = i * rowCount; j < rowCount * i + rowCount; j++) {
+        for (let j = i * rowCount; j < rowCount * (i + 1); j++) {
           const stream = sessionData.streamData.streams[j];
 
-          cols.push(
-            <Col lg>
-              <video
-                key={stream.id}
-                id={`remotevideo_${stream.id}`}
-                poster={noVideoImg}
-                width="320"
-                autoPlay
-                muted="muted"
-                playsInline
-              />
-            </Col>
-          );
+          if (stream) {
+            cols.push(
+              <Col lg>
+                <video
+                  key={stream.id}
+                  id={`remotevideo_${stream.id}`}
+                  poster={noVideoImg}
+                  width="320"
+                  autoPlay
+                  muted="muted"
+                  playsInline
+                />
+              </Col>
+            );
+          }
         }
 
         videoComponents.push(<Row>{cols}</Row>);
