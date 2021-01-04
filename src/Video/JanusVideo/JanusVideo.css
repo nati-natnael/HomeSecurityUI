@@ -10,10 +10,6 @@ video {
   margin-bottom: -5px;
 }
 
-video[poster] {
-  /* border: 1px dotted red; */
-}
-
 .col-lg {
   text-align: center;
   margin: 2px;
