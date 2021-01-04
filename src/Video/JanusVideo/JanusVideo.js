@@ -427,9 +427,9 @@ const JanusVideo = (props) => {
 
           if (stream) {
             cols.push(
-              <Col lg>
+              <Col lg key={stream.id}>
+                <div className="stream-title">{stream.description}</div>
                 <video
-                  key={stream.id}
                   id={`remotevideo_${stream.id}`}
                   poster={noVideoImg}
                   width="320"
@@ -442,7 +442,7 @@ const JanusVideo = (props) => {
           }
         }
 
-        videoComponents.push(<Row>{cols}</Row>);
+        videoComponents.push(<Row key={i}>{cols}</Row>);
       }
     }
 
