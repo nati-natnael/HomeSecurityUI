@@ -1,7 +1,7 @@
 import React from "react";
 import { Navbar } from "react-bootstrap";
-import "./App.css";
-import JanusVideo from "./Video/JanusVideo/JanusVideo";
+import "./app.css";
+import JanusVideo from "./video/janus-video/janus-video";
 
 function App() {
   return (

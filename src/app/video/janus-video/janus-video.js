@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Card, Container, Row, Col } from "react-bootstrap";
-import "./JanusVideo.css";
-import noVideoImg from "./no-video.png";
-import noVideoTvStatic from "./tv-static.gif";
+import "./janus-video.css";
+import noVideoImg from "./../../../img/no-video.png";
+import noVideoTvStatic from "./../../../img/tv-static.gif";
 
 const RequestType = {
   NONE: 0,
@@ -428,7 +428,7 @@ const JanusVideo = (props) => {
           if (stream) {
             cols.push(
               <Col lg key={stream.id}>
-                <div className="stream-title">{stream.description}</div>
+                <div className="stream-title">{`CAM ${stream.id}`}</div>
                 <video
                   id={`remotevideo_${stream.id}`}
                   poster={noVideoImg}
