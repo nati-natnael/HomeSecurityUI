@@ -3,6 +3,16 @@ import { Card, Container, Row, Col } from "react-bootstrap";
 import "./janus-video.css";
 import noVideoImg from "./../../../img/no-video.png";
 import noVideoTvStatic from "./../../../img/tv-static.gif";
+import {
+  createSession,
+  destroySession,
+  attachToStreamingPlugin,
+  getStreamList,
+  detachFromStreamingPlugin,
+  startStream,
+  stopStream,
+  requestWatch,
+} from "./janus-helper/helpers";
 
 const RequestType = {
   NONE: 0,
@@ -33,8 +43,8 @@ const JanusVideo = (props) => {
   const prevSessionData = useRef(null);
 
   const [requestType, setRequestType] = useState(RequestType.NONE);
-  const [websocketData, setWebsocketData] = useState(initialWebsocketData);
   const [sessionData, setSessionData] = useState(initialSessionData);
+  const [websocketData, setWebsocketData] = useState(initialWebsocketData);
 
   if (websocketData.websocket) {
     websocketData.websocket.onopen = () => {
@@ -143,6 +153,7 @@ const JanusVideo = (props) => {
                             .catch((err) => console.log(err));
 
                           startStream(
+                            keepAliveHandle,
                             websocketData.websocket,
                             sessionData.session,
                             stream.handle,
@@ -267,114 +278,6 @@ const JanusVideo = (props) => {
     }
   }, [websocketData, sessionData, sessionData.streamData]);
 
-  const createSession = (webSocketConn) => {
-    webSocketConn.send(
-      JSON.stringify({ janus: "create", transaction: "janus" })
-    );
-  };
-
-  const destroySession = (webSocketConn) => {
-    webSocketConn.send(
-      JSON.stringify({ janus: "destroy", transaction: "janus" })
-    );
-  };
-
-  const attachToStreamingPlugin = (webSocketConn, sessionId, transaction) => {
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "attach",
-        session_id: sessionId,
-        plugin: "janus.plugin.streaming",
-        transaction: transaction ? `${transaction}` : "janus",
-      })
-    );
-  };
-
-  const detachToStreamingPlugin = (webSocketConn, sessId, handleId) => {
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "message",
-        session_id: sessId,
-        handle_id: handleId,
-        transaction: "janus",
-        body: {
-          request: "detach",
-        },
-      })
-    );
-  };
-
-  const getStreamList = (webSocketConn, sessId, handleId) => {
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "message",
-        session_id: sessId,
-        handle_id: handleId,
-        transaction: "janus",
-        body: {
-          request: "list",
-        },
-      })
-    );
-  };
-
-  const requestWatch = (webSocketConn, sessId, handleId, streamIndex) => {
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "message",
-        session_id: sessId,
-        handle_id: handleId,
-        transaction: streamIndex ? `${streamIndex}` : "janus",
-        body: {
-          request: "watch",
-          id: parseInt(streamIndex),
-        },
-      })
-    );
-  };
-
-  const startStream = (webSocketConn, sessId, handleId, answer) => {
-    keepAliveHandle.current = setInterval(() => {
-      webSocketConn.send(
-        JSON.stringify({
-          janus: "keepalive",
-          session_id: sessId,
-          transaction: "janus",
-        })
-      );
-    }, 60000);
-
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "message",
-        session_id: sessId,
-        handle_id: handleId,
-        transaction: "janus",
-        body: {
-          request: "start",
-        },
-        jsep: {
-          type: answer.type,
-          sdp: answer.sdp,
-        },
-      })
-    );
-  };
-
-  const stopStream = (webSocketConn, sessId, handleId) => {
-    webSocketConn.send(
-      JSON.stringify({
-        janus: "message",
-        session_id: sessId,
-        handle_id: handleId,
-        transaction: "janus",
-        body: {
-          request: "stop",
-        },
-      })
-    );
-  };
-
   const unmount = () => {
     const webSockData = prevWebsocketData.current;
     const sessData = prevSessionData.current;
@@ -383,7 +286,7 @@ const JanusVideo = (props) => {
 
     if (webSockData.websocket.readyState === WebSocket.CLOSED) {
       if (sessData.tempPlugin) {
-        detachToStreamingPlugin(
+        detachFromStreamingPlugin(
           webSockData.websocket,
           sessData.session,
           sessData.tempPlugin
@@ -396,7 +299,7 @@ const JanusVideo = (props) => {
 
           stream.rtcPeerConnection.close();
 
-          detachToStreamingPlugin(
+          detachFromStreamingPlugin(
             webSockData.websocket,
             sessData.session,
             stream.handle
