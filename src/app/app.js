@@ -18,7 +18,8 @@ function App() {
           </Navbar.Collapse> */}
         </Navbar>
         <div className="main-content">
-          <JanusVideo ip="192.168.0.8" port="8188" protocol="janus-protocol" />
+          <img src="http://localhost:8080/streams/stream/0" />
+          <img src="http://localhost:8080/streams/stream/1" />
         </div>
       </div>
     </>

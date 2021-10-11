@@ -59,6 +59,8 @@ const JanusVideo = (props) => {
 
     websocketData.websocket.onmessage = async (event) => {
       const janusData = JSON.parse(event.data);
+      
+      console.log(event);
 
       switch (janusData["janus"]) {
         case "success":
@@ -331,7 +333,7 @@ const JanusVideo = (props) => {
           if (stream) {
             cols.push(
               <Col lg key={stream.id}>
-                <div className="stream-title">{`CAM ${stream.id}`}</div>
+                <div className="stream-title">{`CAM ${stream.id} [${stream.description}]`}</div>
                 <video
                   id={`remotevideo_${stream.id}`}
                   poster={noVideoImg}
