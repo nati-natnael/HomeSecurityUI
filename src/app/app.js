@@ -1,9 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { Navbar } from "react-bootstrap";
 import "./app.css";
 import JanusVideo from "./video/janus-video/janus-video";
 
 function App() {
+  const [image, setImage] = useState()
+  const newConnection = new WebSocket("ws://localhost:8080");
+
+  newConnection.onopen = () => {
+    console.log("connection open");
+  };
+
+  newConnection.onclose = () => {
+    console.log("connection closed");
+  };
+
+  newConnection.onerror = (err) => {
+    console.log(err);
+  };
+
+  newConnection.onmessage = async (message) => {
+    dataUri = new DataUri(message?.data)
+    setImage(dataUri);
+    console.log(message?.data);
+  };
+
   return (
     <>
       <div className="wrapper">
@@ -18,8 +39,8 @@ function App() {
           </Navbar.Collapse> */}
         </Navbar>
         <div className="main-content">
-          <img src="http://localhost:8080/streams/stream/0" />
-          <img src="http://localhost:8080/streams/stream/1" />
+          <img xlink:href={image} />
+          {/* <img src="http://localhost:8080/streams/stream/1" /> */}
         </div>
       </div>
     </>
