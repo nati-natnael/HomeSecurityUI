@@ -1,7 +1,7 @@
 import React from "react";
 import { Navbar } from "react-bootstrap";
 import "./app.css";
-import JanusVideo from "./video/janus-video/janus-video";
+import SimpleVideo from "./video/simple-video/simple-video";
 
 function App() {
   return (
@@ -18,8 +18,8 @@ function App() {
           </Navbar.Collapse> */}
         </Navbar>
         <div className="main-content">
-          <img src="http://localhost:8080/streams/stream/0" />
-          <img src="http://localhost:8080/streams/stream/1" />
+          <SimpleVideo streamPath="http://localhost:8080/streams/0" />
+          <SimpleVideo streamPath="http://localhost:8080/streams/1" />
         </div>
       </div>
     </>
