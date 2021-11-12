@@ -4,7 +4,7 @@ import "./app.css";
 import JanusVideo from "./video/janus-video/janus-video";
 
 function App() {
-  const [image, setImage] = useState()
+  const [image, setImage] = useState();
   const newConnection = new WebSocket("ws://localhost:8080");
 
   newConnection.onopen = () => {
@@ -20,9 +20,12 @@ function App() {
   };
 
   newConnection.onmessage = async (message) => {
-    dataUri = new DataUri(message?.data)
-    setImage(dataUri);
-    console.log(message?.data);
+    const reader = new window.FileReader();
+    reader.readAsDataURL(message?.data);
+    reader.onload = (e) => {
+      setImage(reader.result);
+      console.log("data:image/jpg;base64," + reader.result);
+    };
   };
 
   return (
@@ -39,7 +42,7 @@ function App() {
           </Navbar.Collapse> */}
         </Navbar>
         <div className="main-content">
-          <img xlink:href={image} />
+          <img src={image} />
           {/* <img src="http://localhost:8080/streams/stream/1" /> */}
         </div>
       </div>
