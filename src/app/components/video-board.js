@@ -9,7 +9,8 @@ const VideoBoard = () => {
     try {
       const resp = await fetch("http://localhost:8080/streams");
       const data = await resp.json();
-      setStreams(data);
+      console.log("*** streams ***", data.streams);
+      setStreams(data.streams);
     } catch (err) {
       console.log(err);
       return [];
