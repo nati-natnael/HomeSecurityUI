@@ -1,0 +1,13 @@
+/* .card-body {
+  background-color: lightgray;
+} */
+
+.card {
+  display: inline-block;
+  background-color: inherit;
+  border: 1px solid black;
+}
+
+.card-title {
+  padding: 5px 10px;
+}
