@@ -1,32 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "react-bootstrap";
+import JMuxer from "jmuxer";
 import "./app.css";
 import JanusVideo from "./video/janus-video/janus-video";
 
 function App() {
   const [image, setImage] = useState();
-  const newConnection = new WebSocket("ws://localhost:8080");
 
-  newConnection.onopen = () => {
-    console.log("connection open");
-  };
+  useEffect(() => {
+    const video = document.getElementById("player");
 
-  newConnection.onclose = () => {
-    console.log("connection closed");
-  };
+    const muxer = new JMuxer({
+      node: "player",
+      mode: "video",
+      flushingTime: 500,
+      fps: 30,
+      debug: true,
+      onReady: () => {
+        console.log("jmuxer is ready");
+      },
+      onError: (err) => {
+        console.log("jmuxer error", err);
+      },
+    });
 
-  newConnection.onerror = (err) => {
-    console.log(err);
-  };
+    const ws = new WebSocket("ws://localhost:9000");
+    ws.binaryType = "arraybuffer";
 
-  newConnection.onmessage = async (message) => {
-    const reader = new window.FileReader();
-    reader.readAsDataURL(message?.data);
-    reader.onload = (e) => {
-      setImage(reader.result);
-      console.log("data:image/jpg;base64," + reader.result);
+    ws.onopen = () => {
+      console.log("connection open");
     };
-  };
+
+    ws.onclose = () => {
+      console.log("connection closed");
+    };
+
+    ws.onerror = (err) => {
+      console.log(err);
+    };
+
+    ws.onmessage = async (message) => {
+      muxer.feed({
+        video: new Uint8Array(message.data),
+      });
+    };
+  }, []);
 
   return (
     <>
@@ -42,7 +60,7 @@ function App() {
           </Navbar.Collapse> */}
         </Navbar>
         <div className="main-content">
-          <img src={image} />
+          <video id="player" autoPlay muted controls></video>
           {/* <img src="http://localhost:8080/streams/stream/1" /> */}
         </div>
       </div>
