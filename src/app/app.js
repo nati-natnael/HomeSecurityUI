@@ -24,7 +24,7 @@ function App() {
       },
     });
 
-    const ws = new WebSocket("ws://localhost:9000");
+    const ws = new WebSocket("ws://192.168.0.19:9000");
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
